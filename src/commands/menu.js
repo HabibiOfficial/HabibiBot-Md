@@ -109,7 +109,9 @@ export default {
       `Pilih via button atau ketik:\n\n` +
       categories.map(c => `› ${prefix}menu ${c}`).join("\n");
 
-    await sock.sendMessage(from, {
+    // Pakai relayMessage untuk bypass generateWAMessageContent
+    // (listMessage tidak ada di generateWAMessageContent habibi-baileys)
+    await sock.relayMessage(from, {
       listMessage: {
         title: `✨ ${botName}`,
         description,
@@ -141,6 +143,6 @@ export default {
           },
         ],
       },
-    });
+    }, {});
   },
 };
