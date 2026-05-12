@@ -92,76 +92,55 @@ export default {
       return sock.sendMessage(from, { text }, { quoted: m });
     }
 
-    // ── .menu (home) ──────────────────────────────────
+    // ── .menu (home) — listMessage dengan tombol ──────
     const time = moment().tz("Asia/Jakarta").format("HH:mm:ss");
     const date = moment().tz("Asia/Jakarta").format("DD/MM/YYYY");
     const uptime = process.uptime();
     const totalCmd = Object.values(map).reduce((a, v) => a + v.length, 0);
 
-    const bodyText =
-      `halo *${userName}*, selamat ${greet} 👋\n\n` +
-      `┌─「 *INFO BOT* 」\n` +
-      `│ ⏱ Uptime  : ${runtime(uptime)}\n` +
-      `│ 🕐 Waktu   : ${time}\n` +
-      `│ 📅 Tanggal : ${date}\n` +
-      `│ 👑 Owner   : ${ownerName}\n` +
-      `│ 🤖 Total   : ${totalCmd} command\n` +
-      `└────────────────────\n\n` +
-      `Ketuk tombol di bawah untuk pilih kategori 👇`;
+    const description =
+      `👋 Halo, *${userName}*! Selamat ${greet}\n\n` +
+      `⏱ Uptime  : ${runtime(uptime)}\n` +
+      `🕐 Waktu   : ${time}\n` +
+      `📅 Tanggal : ${date}\n` +
+      `👑 Owner   : ${ownerName}\n` +
+      `🤖 Total   : ${totalCmd} command\n\n` +
+      `[ DAFTAR MENU ]\n` +
+      `Pilih via button atau ketik:\n\n` +
+      categories.map(c => `› ${prefix}menu ${c}`).join("\n");
 
-    const footerText = `Prefix: ${prefix}  •  ${botName}`;
-
-    // Tombol untuk tiap kategori + menu all + allmenu
-    const buttons = [
-      ...categories.map(cat => ({
-        name: "quick_reply",
-        buttonParamsJson: JSON.stringify({
-          display_text: `🔖 ${cat.toUpperCase()}`,
-          id: `${prefix}menu ${cat}`,
-        }),
-      })),
-      {
-        name: "quick_reply",
-        buttonParamsJson: JSON.stringify({
-          display_text: "📋 Semua Command",
-          id: `${prefix}menu all`,
-        }),
-      },
-    ];
-
-    // Coba pakai interactiveMessage (nativeFlowMessage)
-    // fallback ke text + externalAdReply jika tidak didukung
-    try {
-      await sock.sendMessage(from, {
-        interactiveMessage: {
-          body: { text: bodyText },
-          footer: { text: footerText },
-          nativeFlowMessage: {
-            buttons,
-            messageParamsJson: "",
+    await sock.sendMessage(from, {
+      listMessage: {
+        title: `✨ ${botName}`,
+        description,
+        buttonText: "📋 Pilih Kategori",
+        listType: 1,
+        sections: [
+          {
+            title: "📌 Kategori Menu",
+            rows: categories.map(cat => ({
+              title: `🔖 ${cat.toUpperCase()}`,
+              rowId: `${prefix}menu ${cat}`,
+              description: `${map[cat].length} command tersedia`,
+            })),
           },
-        },
-      });
-    } catch {
-      // Fallback: text biasa dengan thumbnail card
-      await sock.sendMessage(from, {
-        text: bodyText + `\n\n` +
-          categories.map(c => `🔖 ⌞ ${c.toUpperCase()} ⌝`).join("\n") +
-          `\n\n> ketik *${prefix}menu <kategori>* untuk list command\n` +
-          `> atau *${prefix}menu all* untuk semua command`,
-        contextInfo: thumb
-          ? {
-              externalAdReply: {
-                title: botName,
-                body: footerText,
-                thumbnail: thumb,
-                mediaType: 1,
-                renderLargerThumbnail: false,
-                showAdAttribution: false,
+          {
+            title: "📋 Lainnya",
+            rows: [
+              {
+                title: "📜 Semua Command",
+                rowId: `${prefix}menu all`,
+                description: `Lihat semua ${totalCmd} command sekaligus`,
               },
-            }
-          : undefined,
-      }, { quoted: m });
-    }
+              {
+                title: "📊 Semua + Deskripsi",
+                rowId: `${prefix}allmenu`,
+                description: "Detail lengkap tiap command",
+              },
+            ],
+          },
+        ],
+      },
+    });
   },
 };
