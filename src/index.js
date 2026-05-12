@@ -16,7 +16,7 @@ import { parseMessage } from "./lib/utils.js";
 import logger from "./lib/logger.js";
 import config from "./lib/config.js";
 import { showLoginMenu, c, W, nl, sep, row, hdr } from "./lib/loginMenu.js";
-import { injectBizContext } from "./lib/patcher.js";
+import { patchSock } from "./lib/patcher.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_PATH = path.resolve(__dirname, "../sessions");
@@ -175,29 +175,16 @@ async function startBot() {
 
       logger.cmd(sender.split("@")[0], `${config.prefix}${command}`);
 
-      const bizSock = new Proxy(sock, {
-        get(target, prop) {
-          if (prop === 'sendMessage') {
-            return async (jid, content, opts) => {
-              try { content = injectBizContext(content); } catch (_) {}
-              const result = await target.sendMessage(jid, content, opts);
-              if (result?.key?.id) {
-                sentByBot.add(result.key.id);
-                setTimeout(() => sentByBot.delete(result.key.id), 10000);
-              }
-              return result;
-            };
-          }
-          return target[prop];
-        }
-      });
+      // Buat patched sock pakai teknik fakeq seperti wesker-bot
+      const mCtx = { body, text, sender };
+      const bizSock = patchSock(sock, mCtx);
 
       try {
         await cmd.run({ sock: bizSock, m, args, text, from, sender, isGroup });
       } catch (e) {
         logger.error(`Error di command ${command}: ${e.message}`);
         try {
-          await sock.sendMessage(from, { text: `❌ Error: ${e.message}` }, { quoted: m });
+          await sock.sendMessage(from, { text: `❌ Error: ${e.message}` });
         } catch (_) {}
       }
     }
