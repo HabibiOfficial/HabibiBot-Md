@@ -124,23 +124,20 @@ export default {
       `\n\n> ketik *${prefix}menu <kategori>* untuk list command\n` +
       `> atau *${prefix}menu all* untuk semua command`;
 
-    const contextInfo = thumb
-      ? {
-          externalAdReply: {
-            title: botName,
-            body: `Prefix: ${prefix} | Owner: ${ownerName}`,
-            thumbnail: thumb,
-            mediaType: 1,
-            renderLargerThumbnail: false,
-            showAdAttribution: false,
-          },
-        }
-      : undefined;
+    const msgContent = {
+      text,
+      contextInfo: {
+        externalAdReply: {
+          title: botName,
+          body: `Prefix: ${prefix}  |  Owner: ${ownerName}`,
+          thumbnail: thumb || undefined,
+          mediaType: 1,
+          renderLargerThumbnail: true,
+          showAdAttribution: false,
+        },
+      },
+    };
 
-    await sock.sendMessage(
-      from,
-      { text, ...(contextInfo ? { contextInfo } : {}) },
-      { quoted: m }
-    );
+    await sock.sendMessage(from, msgContent, { quoted: m });
   },
 };
