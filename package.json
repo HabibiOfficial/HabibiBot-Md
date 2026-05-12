@@ -1,0 +1,24 @@
+{
+  "name": "@workspace/whatsapp-bot",
+  "version": "1.0.0",
+  "description": "HabibiBot - WhatsApp Bot powered by habibi-baileys",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2",
+    "figlet": "^1.7.0",
+    "habibi-baileys": "^1.0.0",
+    "jimp": "^0.22.10",
+    "moment": "^2.29.4",
+    "moment-timezone": "^0.6.2",
+    "node-fetch": "^2.7.0",
+    "pino": "^8.14.1",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
