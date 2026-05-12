@@ -1,10 +1,14 @@
+// WhatsApp Business badge injection
+// Membuat pesan terlihat seperti dari akun WhatsApp Business verified
+
 export function injectBizContext(content) {
   if (!content || typeof content !== 'object') return content
   if (content.delete || content.edit || content.react) return content
 
   const ctx = {
     participant: '0@s.whatsapp.net',
-    remoteJid: 'status@broadcast'
+    forwardingScore: 999,
+    isForwarded: true
   }
 
   const hasPayload =
@@ -19,6 +23,9 @@ export function injectBizContext(content) {
 
   return {
     ...content,
-    contextInfo: { ...ctx, ...(content.contextInfo || {}) }
+    contextInfo: {
+      ...ctx,
+      ...(content.contextInfo || {})
+    }
   }
 }
