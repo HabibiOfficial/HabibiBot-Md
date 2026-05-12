@@ -22,6 +22,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_PATH = path.resolve(__dirname, "../sessions");
 const CREDS_FILE = path.join(SESSION_PATH, "creds.json");
 
+// Track pesan yang dikirim bot sendiri agar tidak loop
+const sentByBot = new Set();
+
 async function startBot() {
   console.log("\n" + figlet.textSync(config.botName, { font: "Small" }));
   console.log(`  Prefix: ${config.prefix} | Owner: ${config.ownerName}\n`);
@@ -139,8 +142,9 @@ async function startBot() {
     if (type !== "notify") return;
 
     for (const m of messages) {
-      if (!m.message) { logger.info("[MSG] skip: no message"); continue; }
-      if (m.key.fromMe) { logger.info("[MSG] skip: fromMe"); continue; }
+      if (!m.message) continue;
+      // Skip pesan yang memang dikirim bot sebagai respon (anti-loop)
+      if (m.key.fromMe && sentByBot.has(m.key.id)) continue;
 
       const from = m.key.remoteJid;
       const isGroup = from.endsWith("@g.us");
@@ -174,11 +178,14 @@ async function startBot() {
       const bizSock = new Proxy(sock, {
         get(target, prop) {
           if (prop === 'sendMessage') {
-            return (jid, content, opts) => {
-              try {
-                content = injectBizContext(content);
-              } catch (_) {}
-              return target.sendMessage(jid, content, opts);
+            return async (jid, content, opts) => {
+              try { content = injectBizContext(content); } catch (_) {}
+              const result = await target.sendMessage(jid, content, opts);
+              if (result?.key?.id) {
+                sentByBot.add(result.key.id);
+                setTimeout(() => sentByBot.delete(result.key.id), 10000);
+              }
+              return result;
             };
           }
           return target[prop];
