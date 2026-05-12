@@ -1,7 +1,12 @@
 import config from "../lib/config.js";
 import { runtime } from "../lib/utils.js";
 import moment from "moment-timezone";
+import { createRequire } from "module";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import path from "path";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { botName, ownerName, prefix } = config;
 
 export default {
@@ -14,15 +19,15 @@ export default {
     const time = moment().tz("Asia/Jakarta").format("HH:mm:ss");
     const date = moment().tz("Asia/Jakarta").format("DD/MM/YYYY");
 
-    const text = `╔════════════════════╗
+    const caption = `╔════════════════════╗
 ║   *${botName}*   
 ╚════════════════════╝
 
 ┌─「 *INFO BOT* 」
-│ ⏱ Uptime : ${runtime(uptime)}
-│ 🕐 Waktu  : ${time}
-│ 📅 Tanggal: ${date}
-│ 👑 Owner  : ${ownerName}
+│ ⏱ Uptime  : ${runtime(uptime)}
+│ 🕐 Waktu   : ${time}
+│ 📅 Tanggal : ${date}
+│ 👑 Owner   : ${ownerName}
 └────────────────────
 
 ┌─「 *MENU UTAMA* 」
@@ -48,6 +53,22 @@ export default {
 
 _Ketik ${prefix}<command> untuk mulai_`;
 
-    await sock.sendMessage(m.key.remoteJid, { text }, { quoted: m });
+    let menuImg;
+    try {
+      const imgPath = path.join(__dirname, "../assets/menu.jpg");
+      menuImg = readFileSync(imgPath);
+    } catch (_) {
+      menuImg = null;
+    }
+
+    if (menuImg) {
+      await sock.sendMessage(m.key.remoteJid, {
+        image: menuImg,
+        caption,
+        mimetype: "image/jpeg"
+      }, { quoted: m });
+    } else {
+      await sock.sendMessage(m.key.remoteJid, { text: caption }, { quoted: m });
+    }
   },
 };
