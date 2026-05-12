@@ -139,16 +139,16 @@ export default {
       },
     ];
 
-    const msgContent = {
-      caption: bodyText,
-      title: `✨ ${botName}`,
-      footer: `© ${botName} | Prefix: ${prefix}`,
-      interactiveButtons: [...catButtons, ...extraButtons],
-    };
-
-    // Tambah gambar jika ada
-    if (thumb) msgContent.image = thumb;
-
-    return sock.sendMessage(from, msgContent, { quoted: m });
+    // interactiveMessage → handleInteractive di dugong.js
+    // Tidak pakai viewOnceMessage wrapper, jadi semua button muncul dalam 1 pesan
+    return sock.sendMessage(from, {
+      interactiveMessage: {
+        title: bodyText,
+        footer: `© ${botName} | Prefix: ${prefix}`,
+        header: `✨ ${botName}`,
+        ...(thumb ? { image: thumb } : {}),
+        buttons: [...catButtons, ...extraButtons],
+      },
+    }, { quoted: m });
   },
 };
