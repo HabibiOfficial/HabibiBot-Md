@@ -16,7 +16,7 @@ import { parseMessage } from "./lib/utils.js";
 import logger from "./lib/logger.js";
 import config from "./lib/config.js";
 import { showLoginMenu, c, W, nl, sep, row, hdr } from "./lib/loginMenu.js";
-import { patchSock } from "./lib/patcher.js";
+import { injectBizContext } from "./lib/patcher.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_PATH = path.resolve(__dirname, "../sessions");
@@ -164,16 +164,27 @@ async function startBot() {
 
       logger.cmd(sender.split("@")[0], `${config.prefix}${command}`);
 
+      const bizSock = new Proxy(sock, {
+        get(target, prop) {
+          if (prop === 'sendMessage') {
+            return (jid, content, opts) => {
+              try {
+                content = injectBizContext(content);
+              } catch (_) {}
+              return target.sendMessage(jid, content, opts);
+            };
+          }
+          return target[prop];
+        }
+      });
+
       try {
-        const patchedSock = patchSock(sock);
-        await cmd.run({ sock: patchedSock, m, args, text, from, sender, isGroup });
+        await cmd.run({ sock: bizSock, m, args, text, from, sender, isGroup });
       } catch (e) {
         logger.error(`Error di command ${command}: ${e.message}`);
-        await sock.sendMessage(
-          from,
-          { text: `❌ Error: ${e.message}` },
-          { quoted: m }
-        );
+        try {
+          await sock.sendMessage(from, { text: `❌ Error: ${e.message}` }, { quoted: m });
+        } catch (_) {}
       }
     }
   });
