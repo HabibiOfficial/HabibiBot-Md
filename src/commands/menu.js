@@ -7,7 +7,19 @@ import { fileURLToPath } from "url";
 import path from "path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const { botName, ownerName, prefix } = config;
+const { botName, ownerName, prefix, saluran } = config;
+
+function newsletterCtx() {
+  return {
+    forwardingScore: 9999,
+    isForwarded: true,
+    forwardedNewsletterMessageInfo: {
+      newsletterJid: saluran?.id || "120363421412174731@newsletter",
+      newsletterName: saluran?.name || botName,
+      serverMessageId: 127,
+    },
+  };
+}
 
 function getGreet() {
   const hour = new Date().toLocaleString("en-US", {
@@ -140,7 +152,7 @@ export default {
     ];
 
     // interactiveMessage → handleInteractive di dugong.js
-    // Tidak pakai viewOnceMessage wrapper, jadi semua button muncul dalam 1 pesan
+    // contextInfo newsletter = badge nama saluran di atas pesan
     return sock.sendMessage(from, {
       interactiveMessage: {
         title: bodyText,
@@ -148,6 +160,7 @@ export default {
         header: `✨ ${botName}`,
         ...(thumb ? { image: thumb } : {}),
         buttons: [...catButtons, ...extraButtons],
+        contextInfo: newsletterCtx(),
       },
     }, { quoted: m });
   },
