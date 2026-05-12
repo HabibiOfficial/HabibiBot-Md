@@ -153,6 +153,15 @@ async function startBot() {
         : m.key.remoteJid;
 
       const msgType = Object.keys(m.message || {})[0];
+      // Parse nativeFlowResponse params jika ada
+      let nativeFlowId = "";
+      try {
+        const nfp =
+          m.message?.nativeFlowResponseMessage?.paramsJson ||
+          m.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+        if (nfp) nativeFlowId = JSON.parse(nfp)?.id || "";
+      } catch (_) {}
+
       const body =
         m.message?.conversation ||
         m.message?.extendedTextMessage?.text ||
@@ -160,6 +169,7 @@ async function startBot() {
         m.message?.videoMessage?.caption ||
         m.message?.buttonsResponseMessage?.selectedButtonId ||
         m.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+        nativeFlowId ||
         m.message?.ephemeralMessage?.message?.extendedTextMessage?.text ||
         m.message?.ephemeralMessage?.message?.conversation ||
         m.message?.viewOnceMessage?.message?.extendedTextMessage?.text ||
