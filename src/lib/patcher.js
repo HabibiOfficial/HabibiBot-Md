@@ -3,12 +3,6 @@
 
 const WA_PARTICIPANT = '0@s.whatsapp.net'
 
-const MSG_TYPES_WITH_CTX = [
-  'extendedTextMessage', 'imageMessage', 'videoMessage', 'audioMessage',
-  'stickerMessage', 'documentMessage', 'locationMessage', 'contactMessage',
-  'interactiveMessage'
-]
-
 function buildDefaultCtx(m) {
   return {
     participant: WA_PARTICIPANT,
@@ -32,6 +26,30 @@ function normalizeCtx(ctx, defaultCtx) {
 function processSendMessage(content, defaultCtx) {
   if (!content || typeof content !== 'object') return content
   if (content.delete || content.edit || content.react) return content
+
+  // interactiveMessage: contextInfo masuk DALAM, bukan di luar
+  if (content.interactiveMessage) {
+    return {
+      ...content,
+      interactiveMessage: {
+        ...content.interactiveMessage,
+        contextInfo: normalizeCtx(content.interactiveMessage.contextInfo, defaultCtx)
+      }
+    }
+  }
+
+  // listMessage: contextInfo masuk DALAM listMessage
+  if (content.listMessage) {
+    return {
+      ...content,
+      listMessage: {
+        ...content.listMessage,
+        contextInfo: normalizeCtx(content.listMessage.contextInfo, defaultCtx)
+      }
+    }
+  }
+
+  // Pesan teks/media biasa: contextInfo di level atas
   return {
     ...content,
     contextInfo: normalizeCtx(content.contextInfo, defaultCtx)
@@ -44,7 +62,14 @@ function processRelayMessage(content, defaultCtx) {
     content.viewOnceMessage?.message ||
     content.ephemeralMessage?.message ||
     content
-  for (const type of MSG_TYPES_WITH_CTX) {
+
+  const typesWithCtx = [
+    'extendedTextMessage', 'imageMessage', 'videoMessage', 'audioMessage',
+    'stickerMessage', 'documentMessage', 'locationMessage', 'contactMessage',
+    'interactiveMessage', 'listMessage'
+  ]
+
+  for (const type of typesWithCtx) {
     if (!inner[type]) continue
     inner[type] = {
       ...inner[type],
@@ -52,6 +77,7 @@ function processRelayMessage(content, defaultCtx) {
     }
     return content
   }
+
   if (inner.text !== undefined) {
     inner.contextInfo = normalizeCtx(inner.contextInfo, defaultCtx)
   }
@@ -73,8 +99,7 @@ export function patchSock(sock, m) {
         return async (jid, content, opts) => {
           content = processSendMessage(content, defaultCtx)
           opts = stripQuotedOpts(opts)
-          const result = await target.sendMessage(jid, content, opts)
-          return result
+          return target.sendMessage(jid, content, opts)
         }
       }
       if (prop === 'relayMessage') {
