@@ -11,7 +11,7 @@ const { botName, ownerName, prefix } = config;
 
 function getGreet() {
   const hour = new Date().toLocaleString("en-US", {
-    timeZone: "Asia/Jakarta", hour: "numeric", hour12: false
+    timeZone: "Asia/Jakarta", hour: "numeric", hour12: false,
   }) * 1;
   if (hour >= 4 && hour < 12) return "pagi";
   if (hour >= 12 && hour < 15) return "siang";
@@ -33,11 +33,8 @@ function buildCategoryMap() {
 }
 
 function getMenuThumb() {
-  try {
-    return readFileSync(path.join(__dirname, "../assets/menu.jpg"));
-  } catch {
-    return null;
-  }
+  try { return readFileSync(path.join(__dirname, "../assets/menu.jpg")); }
+  catch { return null; }
 }
 
 export default {
@@ -49,68 +46,59 @@ export default {
   async run({ sock, m, args, from, sender }) {
     const map = buildCategoryMap();
     const categories = Object.keys(map).sort();
-    const userName = (m.pushName || sender.split("@")[0]);
+    const userName = m.pushName || sender.split("@")[0];
     const greet = getGreet();
     const thumb = getMenuThumb();
 
-    // .menu all — tampilkan semua command dalam tree style
+    // ── .menu all ─────────────────────────────────────
     if (args[0]?.toLowerCase() === "all") {
       const lastCat = categories[categories.length - 1];
       let text = `halo *${userName}*, selamat ${greet} 👋\n\n`;
-
       for (const cat of categories) {
         const cmds = map[cat].sort((a, b) => a.cmd.localeCompare(b.cmd));
         const isLast = cat === lastCat;
         const pfx = isLast ? "└─" : "├─";
         const bar = isLast ? "   " : "│  ";
-        const last = cmds.length - 1;
-
         text += `${pfx} 🔖 ⌞ ${cat.toUpperCase()} ⌝\n`;
         text += cmds.map(({ cmd }, i) =>
-          `${bar}${i === last ? "└─" : "├─"} ${prefix}${cmd}`
+          `${bar}${i === cmds.length - 1 ? "└─" : "├─"} ${prefix}${cmd}`
         ).join("\n");
         text += `\n${isLast ? "" : "│  \n"}`;
       }
-
       text += `\n> ketik *${prefix}menu <kategori>* untuk detail`;
-
       return sock.sendMessage(from, { text }, { quoted: m });
     }
 
-    // .menu <kategori> — tampilkan command di kategori itu
+    // ── .menu <kategori> ──────────────────────────────
     if (args[0]) {
       const target = args[0].toLowerCase();
       if (!map[target]) {
-        const text =
-          `Kategori *${target}* tidak ditemukan.\n\n` +
-          `Kategori yang tersedia:\n` +
-          categories.map(c => `🔖 ⌞ ${c} ⌝`).join("\n") +
-          `\n\nKetik *${prefix}menu* untuk melihat semua kategori.`;
-        return sock.sendMessage(from, { text }, { quoted: m });
+        return sock.sendMessage(from, {
+          text:
+            `Kategori *${target}* tidak ditemukan.\n\n` +
+            `Kategori yang tersedia:\n` +
+            categories.map(c => `🔖 ⌞ ${c.toUpperCase()} ⌝`).join("\n") +
+            `\n\nKetik *${prefix}menu* untuk melihat semua kategori.`,
+        }, { quoted: m });
       }
-
       const cmds = map[target].sort((a, b) => a.cmd.localeCompare(b.cmd));
-      const last = cmds.length - 1;
       const text =
         `*🔖  ${target.toUpperCase()}*\n\n` +
         cmds.map(({ cmd, desc }, i) => {
-          const tree = i === last ? "└─" : "├─";
-          return desc
-            ? `${tree} ${prefix}${cmd}  —  ${desc}`
-            : `${tree} ${prefix}${cmd}`;
+          const tree = i === cmds.length - 1 ? "└─" : "├─";
+          return desc ? `${tree} ${prefix}${cmd}  —  ${desc}` : `${tree} ${prefix}${cmd}`;
         }).join("\n") +
         `\n\n> ketik *${prefix}menu all* untuk semua command`;
-
       return sock.sendMessage(from, { text }, { quoted: m });
     }
 
-    // .menu (home) — tampilkan kategori dengan thumbnail card
+    // ── .menu (home) — dengan list button ─────────────
     const time = moment().tz("Asia/Jakarta").format("HH:mm:ss");
     const date = moment().tz("Asia/Jakarta").format("DD/MM/YYYY");
     const uptime = process.uptime();
     const totalCmd = Object.values(map).reduce((a, v) => a + v.length, 0);
 
-    const text =
+    const headerText =
       `halo *${userName}*, selamat ${greet} 👋\n\n` +
       `┌─「 *INFO BOT* 」\n` +
       `│ ⏱ Uptime  : ${runtime(uptime)}\n` +
@@ -119,25 +107,41 @@ export default {
       `│ 👑 Owner   : ${ownerName}\n` +
       `│ 🤖 Total   : ${totalCmd} command\n` +
       `└────────────────────\n\n` +
-      `*Kategori Menu:*\n` +
-      categories.map(c => `🔖 ⌞ ${c} ⌝`).join("\n") +
-      `\n\n> ketik *${prefix}menu <kategori>* untuk list command\n` +
-      `> atau *${prefix}menu all* untuk semua command`;
+      `Pilih kategori di bawah 👇`;
 
-    const msgContent = {
-      text,
-      contextInfo: {
-        externalAdReply: {
-          title: botName,
-          body: `Prefix: ${prefix}  |  Owner: ${ownerName}`,
-          thumbnail: thumb || undefined,
-          mediaType: 1,
-          renderLargerThumbnail: true,
-          showAdAttribution: false,
-        },
+    // Kirim dengan list button (tombol bisa diklik)
+    await sock.sendMessage(from, {
+      listMessage: {
+        title: `✨ ${botName}`,
+        description: headerText,
+        buttonText: "📋 Lihat Kategori",
+        listType: 1,
+        sections: [
+          {
+            title: "Kategori Menu",
+            rows: categories.map(cat => ({
+              title: `🔖 ${cat.toUpperCase()}`,
+              rowId: `${prefix}menu ${cat}`,
+              description: `${map[cat].length} command tersedia`,
+            })),
+          },
+          {
+            title: "Lainnya",
+            rows: [
+              {
+                title: "📋 Semua Command",
+                rowId: `${prefix}menu all`,
+                description: `Lihat ${totalCmd} command sekaligus`,
+              },
+              {
+                title: "📊 Semua Command + Deskripsi",
+                rowId: `${prefix}allmenu`,
+                description: "Detail lengkap semua command",
+              },
+            ],
+          },
+        ],
       },
-    };
-
-    await sock.sendMessage(from, msgContent, { quoted: m });
+    }, { quoted: m });
   },
 };
