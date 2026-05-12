@@ -135,11 +135,12 @@ async function startBot() {
   });
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    logger.info(`[MSG] type=${type} count=${messages.length}`);
     if (type !== "notify") return;
 
     for (const m of messages) {
-      if (!m.message) continue;
-      if (m.key.fromMe) continue;
+      if (!m.message) { logger.info("[MSG] skip: no message"); continue; }
+      if (m.key.fromMe) { logger.info("[MSG] skip: fromMe"); continue; }
 
       const from = m.key.remoteJid;
       const isGroup = from.endsWith("@g.us");
@@ -147,6 +148,7 @@ async function startBot() {
         ? m.key.participant || m.key.remoteJid
         : m.key.remoteJid;
 
+      const msgType = Object.keys(m.message || {})[0];
       const body =
         m.message?.conversation ||
         m.message?.extendedTextMessage?.text ||
@@ -154,7 +156,12 @@ async function startBot() {
         m.message?.videoMessage?.caption ||
         m.message?.buttonsResponseMessage?.selectedButtonId ||
         m.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+        m.message?.ephemeralMessage?.message?.extendedTextMessage?.text ||
+        m.message?.ephemeralMessage?.message?.conversation ||
+        m.message?.viewOnceMessage?.message?.extendedTextMessage?.text ||
         "";
+
+      logger.info(`[MSG] from=${from.split("@")[0]} type=${msgType} body="${body}"`);
 
       const { isCmd, command, args, text } = parseMessage(body);
       if (!isCmd) continue;
