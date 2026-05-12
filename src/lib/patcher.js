@@ -14,6 +14,8 @@ function buildDefaultCtx(m) {
 function normalizeCtx(ctx, defaultCtx) {
   if (!ctx) return defaultCtx
   if (ctx.participant === WA_PARTICIPANT || ctx.__skipPatch) return ctx
+  // Jika pakai newsletter badge, jangan overwrite
+  if (ctx.forwardedNewsletterMessageInfo) return ctx
   const { stanzaId, participant, ...rest } = ctx
   return {
     ...rest,
