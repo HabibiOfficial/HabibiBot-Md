@@ -37,6 +37,8 @@ function getMenuThumb() {
   catch { return null; }
 }
 
+const ICON = { fun: "🎮", general: "⚙️", main: "🏠", tool: "🔧" };
+
 export default {
   name: "menu",
   alias: ["help", "start"],
@@ -92,57 +94,61 @@ export default {
       return sock.sendMessage(from, { text }, { quoted: m });
     }
 
-    // ── .menu (home) — listMessage dengan tombol ──────
+    // ── .menu (home) — interactiveButtons via dugong ──
     const time = moment().tz("Asia/Jakarta").format("HH:mm:ss");
     const date = moment().tz("Asia/Jakarta").format("DD/MM/YYYY");
     const uptime = process.uptime();
     const totalCmd = Object.values(map).reduce((a, v) => a + v.length, 0);
 
-    const description =
+    const bodyText =
       `👋 Halo, *${userName}*! Selamat ${greet}\n\n` +
-      `⏱ Uptime  : ${runtime(uptime)}\n` +
-      `🕐 Waktu   : ${time}\n` +
-      `📅 Tanggal : ${date}\n` +
-      `👑 Owner   : ${ownerName}\n` +
-      `🤖 Total   : ${totalCmd} command\n\n` +
-      `[ DAFTAR MENU ]\n` +
-      `Pilih via button atau ketik:\n\n` +
-      categories.map(c => `› ${prefix}menu ${c}`).join("\n");
+      `⏱ *Uptime*  : ${runtime(uptime)}\n` +
+      `🕐 *Waktu*   : ${time}\n` +
+      `📅 *Tanggal* : ${date}\n` +
+      `👑 *Owner*   : ${ownerName}\n` +
+      `🤖 *Total*   : ${totalCmd} command\n\n` +
+      `Ketuk tombol di bawah untuk pilih kategori 👇\n` +
+      categories.map(c => `🔖 ⌞ ${c.toUpperCase()} ⌝`).join("\n") +
+      `\n\n| ketik *${prefix}menu <kategori>* untuk list command\n` +
+      `| atau *${prefix}menu all* untuk semua command`;
 
-    // Pakai relayMessage untuk bypass generateWAMessageContent
-    // (listMessage tidak ada di generateWAMessageContent habibi-baileys)
-    await sock.relayMessage(from, {
-      listMessage: {
-        title: `✨ ${botName}`,
-        description,
-        buttonText: "📋 Pilih Kategori",
-        listType: 1,
-        sections: [
-          {
-            title: "📌 Kategori Menu",
-            rows: categories.map(cat => ({
-              title: `🔖 ${cat.toUpperCase()}`,
-              rowId: `${prefix}menu ${cat}`,
-              description: `${map[cat].length} command tersedia`,
-            })),
-          },
-          {
-            title: "📋 Lainnya",
-            rows: [
-              {
-                title: "📜 Semua Command",
-                rowId: `${prefix}menu all`,
-                description: `Lihat semua ${totalCmd} command sekaligus`,
-              },
-              {
-                title: "📊 Semua + Deskripsi",
-                rowId: `${prefix}allmenu`,
-                description: "Detail lengkap tiap command",
-              },
-            ],
-          },
-        ],
+    // Buat tombol quick_reply untuk tiap kategori
+    const catButtons = categories.map(cat => ({
+      name: "quick_reply",
+      buttonParamsJson: JSON.stringify({
+        display_text: `${ICON[cat] || "📋"} ${cat.toUpperCase()}`,
+        id: `${prefix}menu ${cat}`,
+      }),
+    }));
+
+    // Tambah tombol "Semua Command" dan "Allmenu"
+    const extraButtons = [
+      {
+        name: "quick_reply",
+        buttonParamsJson: JSON.stringify({
+          display_text: "📜 Semua Command",
+          id: `${prefix}menu all`,
+        }),
       },
-    }, {});
+      {
+        name: "quick_reply",
+        buttonParamsJson: JSON.stringify({
+          display_text: "📊 Detail Lengkap",
+          id: `${prefix}allmenu`,
+        }),
+      },
+    ];
+
+    const msgContent = {
+      caption: bodyText,
+      title: `✨ ${botName}`,
+      footer: `© ${botName} | Prefix: ${prefix}`,
+      interactiveButtons: [...catButtons, ...extraButtons],
+    };
+
+    // Tambah gambar jika ada
+    if (thumb) msgContent.image = thumb;
+
+    return sock.sendMessage(from, msgContent, { quoted: m });
   },
 };
