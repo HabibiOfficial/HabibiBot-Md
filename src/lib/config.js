@@ -6,6 +6,12 @@ const config = {
   sessionPath: "./sessions",
   timezone: "Asia/Jakarta",
 
+  // Newsletter/saluran untuk badge di atas pesan interaktif
+  saluran: {
+    id: process.env.SALURAN_ID || "120363421412174731@newsletter",
+    name: process.env.SALURAN_NAME || "HabibiBot",
+  },
+
   colors: {
     primary: "\x1b[36m",
     success: "\x1b[32m",
